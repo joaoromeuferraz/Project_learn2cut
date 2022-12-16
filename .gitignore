@@ -5,3 +5,15 @@
 .ipynb_checkpoints
 
 wandb/
+**/*.cpython-37..pyc
+**/*.cpython-37..pyc
+__pycache__/config.cpython-37.pyc
+__pycache__/gurobiutils.cpython-37.pyc
+__pycache__/gymenv_v2.cpython-37.pyc
+__pycache__/layers.cpython-37.pyc
+__pycache__/main.cpython-37.pyc
+__pycache__/params.cpython-37.pyc
+__pycache__/policy.cpython-37.pyc
+__pycache__/rollout.cpython-37.pyc
+__pycache__/solverutils.cpython-37.pyc
+__pycache__/utils.cpython-37.pyc

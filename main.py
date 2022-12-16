@@ -34,6 +34,9 @@ def es(env, units, activations, r_thresh, params_thresh, num_eval, num_cuts, gam
     optimizers = [AdamOptimizer(lr=lr) for _ in range(len(policy.get_weights()))]
     train_rrecord = []
     prev_reward = 0.
+    movingAverage = 0.
+    fixedWindow = 10
+    all_rewards = []
     
     for e in range(num_episodes):
         print(f"Episode {e+1}")
@@ -73,10 +76,18 @@ def es(env, units, activations, r_thresh, params_thresh, num_eval, num_cuts, gam
 
         eval_r, _, _ = rollout_multiple(env, policy, num_eval, 50, gamma=1.)
         eval_r = np.array(eval_r).sum(axis=1)
+        train_rrecord.append(np.mean(eval_r))
+        
+        for aux_r in eval_r:
+            wandb.log({"training rewards": aux_r})
+            all_rewards.append(aux_r)
+        
+        if len(all_rewards) >= fixedWindow:
+            movingAverage = np.mean(all_rewards[-fixedWindow:])
+            wandb.log({f"moving average training rewards": movingAverage})
         
         print("Evaluated rewards: %.4f" % np.mean(eval_r))
         print('mean',np.mean(eval_r),'max',np.max(eval_r),'min',np.min(eval_r),'std',np.std(eval_r))
-        train_rrecord.append(np.mean(eval_r))
         
         end_t = time.time()
         print("Time elapsed: %.4f minutes" % ((end_t - start_t)/60))
@@ -90,7 +101,7 @@ def es(env, units, activations, r_thresh, params_thresh, num_eval, num_cuts, gam
     print(f"Average test reward: {np.mean(test_rrecord)}")
     print("Time elapsed: %.4f minutes" % ((end_t - start_t)/60))
     
-    return train_rrecord, test_rrecord, policy.get_weights()
+    return train_rrecord, test_rrecord, all_rewards, policy.get_weights()
     
 def pg(env, units, activations, r_thresh, params_thresh, num_eval, num_cuts, gamma, num_episodes, num_test):
     print("")
@@ -105,6 +116,9 @@ def pg(env, units, activations, r_thresh, params_thresh, num_eval, num_cuts, gam
     
     train_rrecord = []
     prev_reward = 0.
+    movingAverage = 0.
+    fixedWindow = 10
+    all_rewards = []
     
     for e in range(num_episodes):
         print(f"Episode {e+1}")
@@ -130,11 +144,19 @@ def pg(env, units, activations, r_thresh, params_thresh, num_eval, num_cuts, gam
         print("Evaluating rewards...")
         eval_r, _, _ = rollout_multiple(env, policy, num_eval, 50, gamma=1.)
         eval_r = np.array(eval_r).sum(axis=1)
+        train_rrecord.append(np.mean(eval_r))
         
+        for aux_r in eval_r:
+            wandb.log({"training rewards": aux_r})
+            all_rewards.append(aux_r)
+        
+        if len(all_rewards) >= fixedWindow:
+            movingAverage = np.mean(all_rewards[-fixedWindow:])
+            wandb.log({f"moving average training reward": movingAverage})
+            
         print("Evaluated rewards: %.4f" % np.mean(eval_r))
         print('mean',np.mean(eval_r),'max',np.max(eval_r),'min',np.min(eval_r),'std',np.std(eval_r))
         print("")
-        train_rrecord.append(np.mean(eval_r))
         
         end_t = time.time()
         print("Time elapsed: %.4f minutes" % ((end_t - start_t)/60))
@@ -148,7 +170,7 @@ def pg(env, units, activations, r_thresh, params_thresh, num_eval, num_cuts, gam
     print(f"Average test reward: {np.mean(test_rrecord)}")
     print("Time elapsed: %.4f minutes" % ((end_t - start_t)/60))
     
-    return train_rrecord, test_rrecord, policy.get_weights()
+    return train_rrecord, test_rrecord, all_rewards, policy.get_weights()
 
 
 def eval_policy(policy, env, num_evals):
@@ -180,12 +202,17 @@ def main(run_name, config, r_thresh, params_thresh, num_eval=10, num_cuts=10, ga
                 os.mkdir(f"results/{run_name}/{strategy}")
                 
         if strategy == "es":
-            train_rrecord, test_rrecord, weights = es(env, **all_params)
+            train_rrecord, test_rrecord, all_rewards, weights = es(env, **all_params)
         else:
-            train_rrecord, test_rrecord, weights = pg(env, **all_params)
+            train_rrecord, test_rrecord, all_rewards, weights = pg(env, **all_params)
         
         np.save(f"results/{run_name}/{strategy}/train_rrecord", train_rrecord)
         np.save(f"results/{run_name}/{strategy}/test_rrecord", test_rrecord)
+        np.save(f"results/{run_name}/{strategy}/all_rewards", all_rewards)
         np.save(f"results/{run_name}/{strategy}/weights", weights)
+        run_info = {
+            "id": run.id,
+            "url": run.get_url()
+        }
+        np.save(f"results/{run_name}/{strategy}/run_info", run_info)
         run.finish()
-        

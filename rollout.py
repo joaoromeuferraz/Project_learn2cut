@@ -1,4 +1,5 @@
 from utils import discounted_rewards
+import wandb
 
 def rollout(env, policy, num_cuts, gamma=1.):
     rewards = []
@@ -28,7 +29,3 @@ def rollout_multiple(env, policy, num_trajectories, num_cuts, gamma=1.):
         states += s
         actions += a
     return rewards, states, actions
-    
-        
-        
-    
