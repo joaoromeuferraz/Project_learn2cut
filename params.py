@@ -52,7 +52,7 @@ params_7 = {
     "num_test": 10
 }
 
-params_7 = {
+params_8 = {
     "run_name": "hard_config4",
     "config": hard_config,
     "r_thresh": [0.2, 0.4, 0.8],
